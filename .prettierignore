@@ -4,4 +4,3 @@ cache
 coverage*
 gasReporterOutput.json
 
-*.sol

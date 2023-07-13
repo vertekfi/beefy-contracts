@@ -1,7 +1,7 @@
-import hardhat, { ethers, upgrades } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { verifyContract } from "../../utils/verifyContract";
 
-const shouldVerifyOnEtherscan = true;
+const shouldVerifyOnEtherscan = false;
 
 const contractNames = {
   BeefyVaultRegistry: "BeefyRegistry",
@@ -10,19 +10,28 @@ const contractNames = {
 const implementationConstructorArguments: any[] = []; // proxy implementations cannot have constructors
 
 const deploy = async () => {
-  const BeefyVaultRegistryFactory = await ethers.getContractFactory(contractNames.BeefyVaultRegistry)
+  const BeefyVaultRegistryFactory = await ethers.getContractFactory(
+    contractNames.BeefyVaultRegistry
+  );
 
   console.log("Deploying:", contractNames.BeefyVaultRegistry);
 
   const constructorArguments: any[] = [];
-  const transparentUpgradableProxy = await upgrades.deployProxy(BeefyVaultRegistryFactory, constructorArguments);
+  const transparentUpgradableProxy = await upgrades.deployProxy(
+    BeefyVaultRegistryFactory,
+    constructorArguments
+  );
   await transparentUpgradableProxy.deployed();
 
-  const implementationAddress = await upgrades.erc1967.getImplementationAddress(transparentUpgradableProxy.address);
+  const implementationAddress = await upgrades.erc1967.getImplementationAddress(
+    transparentUpgradableProxy.address
+  );
 
-  console.log();
   console.log("TransparentUpgradableProxy:", transparentUpgradableProxy.address);
-  console.log(`Implementation address (${contractNames.BeefyVaultRegistry}):`, implementationAddress);
+  console.log(
+    `Implementation address (${contractNames.BeefyVaultRegistry}):`,
+    implementationAddress
+  );
 
   console.log();
   console.log("Running post deployment");
@@ -30,9 +39,10 @@ const deploy = async () => {
   const verifyContractsPromises: Promise<any>[] = [];
   if (shouldVerifyOnEtherscan) {
     console.log(`Verifying ${contractNames.BeefyVaultRegistry}`);
-    verifyContractsPromises.push(verifyContract(implementationAddress, implementationConstructorArguments));
+    verifyContractsPromises.push(
+      verifyContract(implementationAddress, implementationConstructorArguments)
+    );
   }
-  console.log();
 
   await Promise.all(verifyContractsPromises);
 };

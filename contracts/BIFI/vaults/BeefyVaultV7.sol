@@ -19,7 +19,7 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
 
     struct StratCandidate {
         address implementation;
-        uint proposedTime;
+        uint256 proposedTime;
     }
 
     // The last proposed strategy to switch to.
@@ -32,6 +32,16 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        /**
+         * Prevents later initialization attempts after deployment.
+         * If a base contract was left uninitialized, the implementation contracts
+         * could potentially be compromised in some way.
+         */
+        _disableInitializers();
+    }
+
     /**
      * @dev Sets the value of {token} to the token that the vault will
      * hold as underlying value. It initializes the vault's own 'moo' token.
@@ -42,7 +52,7 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
      * @param _symbol the symbol of the vault token.
      * @param _approvalDelay the delay before a new strat can be approved.
      */
-     function initialize(
+    function initialize(
         IStrategyV7 _strategy,
         string memory _name,
         string memory _symbol,
@@ -64,7 +74,7 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
      * It takes into account the vault contract balance, the strategy contract balance
      *  and the balance deployed in other contracts as part of the strategy.
      */
-    function balance() public view returns (uint) {
+    function balance() public view returns (uint256) {
         return want().balanceOf(address(this)) + IStrategyV7(strategy).balanceOf();
     }
 
@@ -83,7 +93,7 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
      * Returns an uint256 with 18 decimals of how much underlying asset one vault share represents.
      */
     function getPricePerFullShare() public view returns (uint256) {
-        return totalSupply() == 0 ? 1e18 : balance() * 1e18 / totalSupply();
+        return totalSupply() == 0 ? 1e18 : (balance() * 1e18) / totalSupply();
     }
 
     /**
@@ -97,7 +107,7 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
      * @dev The entrypoint of funds into the system. People deposit with this function
      * into the vault. The vault is then in charge of sending funds into the strategy.
      */
-    function deposit(uint _amount) public nonReentrant {
+    function deposit(uint256 _amount) public nonReentrant {
         strategy.beforeDeposit();
 
         uint256 _pool = balance();
@@ -119,7 +129,7 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
      * by the vault's deposit() function.
      */
     function earn() public {
-        uint _bal = available();
+        uint256 _bal = available();
         want().safeTransfer(address(strategy), _bal);
         strategy.deposit();
     }
@@ -140,12 +150,12 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
         uint256 r = (balance() * _shares) / totalSupply();
         _burn(msg.sender, _shares);
 
-        uint b = want().balanceOf(address(this));
+        uint256 b = want().balanceOf(address(this));
         if (b < r) {
-            uint _withdraw = r - b;
+            uint256 _withdraw = r - b;
             strategy.withdraw(_withdraw);
-            uint _after = want().balanceOf(address(this));
-            uint _diff = _after - b;
+            uint256 _after = want().balanceOf(address(this));
+            uint256 _diff = _after - b;
             if (_diff < _withdraw) {
                 r = b + _diff;
             }
@@ -154,30 +164,36 @@ contract BeefyVaultV7 is ERC20Upgradeable, OwnableUpgradeable, ReentrancyGuardUp
         want().safeTransfer(msg.sender, r);
     }
 
-    /** 
+    /**
      * @dev Sets the candidate for the new strat to use with this vault.
-     * @param _implementation The address of the candidate strategy.  
+     * @param _implementation The address of the candidate strategy.
      */
     function proposeStrat(address _implementation) public onlyOwner {
-        require(address(this) == IStrategyV7(_implementation).vault(), "Proposal not valid for this Vault");
+        require(
+            address(this) == IStrategyV7(_implementation).vault(),
+            "Proposal not valid for this Vault"
+        );
         require(want() == IStrategyV7(_implementation).want(), "Different want");
         stratCandidate = StratCandidate({
             implementation: _implementation,
             proposedTime: block.timestamp
-         });
+        });
 
         emit NewStratCandidate(_implementation);
     }
 
-    /** 
-     * @dev It switches the active strat for the strat candidate. After upgrading, the 
-     * candidate implementation is set to the 0x00 address, and proposedTime to a time 
-     * happening in +100 years for safety. 
+    /**
+     * @dev It switches the active strat for the strat candidate. After upgrading, the
+     * candidate implementation is set to the 0x00 address, and proposedTime to a time
+     * happening in +100 years for safety.
      */
 
     function upgradeStrat() public onlyOwner {
         require(stratCandidate.implementation != address(0), "There is no candidate");
-        require(stratCandidate.proposedTime + approvalDelay < block.timestamp, "Delay has not passed");
+        require(
+            stratCandidate.proposedTime + approvalDelay < block.timestamp,
+            "Delay has not passed"
+        );
 
         emit UpgradeStrat(stratCandidate.implementation);
 

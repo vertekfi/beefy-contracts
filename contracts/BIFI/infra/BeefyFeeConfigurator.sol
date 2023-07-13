@@ -5,14 +5,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract BeefyFeeConfigurator is OwnableUpgradeable {
-
     struct FeeCategory {
-        uint256 total;      // total fee charged on each harvest
-        uint256 beefy;      // split of total fee going to beefy fee batcher
-        uint256 call;       // split of total fee going to harvest caller
-        uint256 strategist;     // split of total fee going to developer of the strategy
-        string label;       // description of the type of fee category
-        bool active;        // on/off switch for fee category
+        uint256 total; // total fee charged on each harvest
+        uint256 beefy; // split of total fee going to beefy fee batcher
+        uint256 call; // split of total fee going to harvest caller
+        uint256 strategist; // split of total fee going to developer of the strategy
+        string label; // description of the type of fee category
+        bool active; // on/off switch for fee category
     }
 
     address public keeper;
@@ -36,10 +35,7 @@ contract BeefyFeeConfigurator is OwnableUpgradeable {
     event Unpause(uint256 indexed id);
     event SetKeeper(address indexed keeper);
 
-    function initialize(
-        address _keeper,
-        uint256 _totalLimit
-    ) public initializer {
+    function initialize(address _keeper, uint256 _totalLimit) public initializer {
         __Ownable_init();
 
         keeper = _keeper;
@@ -64,14 +60,18 @@ contract BeefyFeeConfigurator is OwnableUpgradeable {
 
     // fetch fee category for an id if active, otherwise return default category
     // _adjust == true: view fees as % of total harvest instead of % of total fee
-    function getFeeCategory(uint256 _id, bool _adjust) public view returns (FeeCategory memory fees) {
+    function getFeeCategory(uint256 _id, bool _adjust)
+        public
+        view
+        returns (FeeCategory memory fees)
+    {
         uint256 id = feeCategory[_id].active ? _id : 0;
         fees = feeCategory[id];
         if (_adjust) {
             uint256 _totalFee = fees.total;
-            fees.beefy = fees.beefy * _totalFee / DIVISOR;
-            fees.call = fees.call * _totalFee / DIVISOR;
-            fees.strategist = fees.strategist * _totalFee / DIVISOR;
+            fees.beefy = (fees.beefy * _totalFee) / DIVISOR;
+            fees.call = (fees.call * _totalFee) / DIVISOR;
+            fees.strategist = (fees.strategist * _totalFee) / DIVISOR;
         }
     }
 
@@ -86,7 +86,10 @@ contract BeefyFeeConfigurator is OwnableUpgradeable {
     }
 
     // set fee category ids for multiple strategies at once by a manager
-    function setStratFeeId(address[] memory _strategies, uint256[] memory _feeIds) external onlyManager {
+    function setStratFeeId(address[] memory _strategies, uint256[] memory _feeIds)
+        external
+        onlyManager
+    {
         uint256 stratLength = _strategies.length;
         for (uint256 i = 0; i < stratLength; i++) {
             _setStratFeeId(_strategies[i], _feeIds[i]);
@@ -113,12 +116,19 @@ contract BeefyFeeConfigurator is OwnableUpgradeable {
     ) external onlyOwner {
         require(_total <= totalLimit, ">totalLimit");
         if (_adjust) {
-            _call = _call * DIVISOR / _total;
-            _strategist = _strategist * DIVISOR / _total;
+            _call = (_call * DIVISOR) / _total;
+            _strategist = (_strategist * DIVISOR) / _total;
         }
         uint256 beefy = DIVISOR - _call - _strategist;
 
-        FeeCategory memory category = FeeCategory(_total, beefy, _call, _strategist, _label, _active);
+        FeeCategory memory category = FeeCategory(
+            _total,
+            beefy,
+            _call,
+            _strategist,
+            _label,
+            _active
+        );
         feeCategory[_id] = category;
         emit SetFeeCategory(_id, _total, beefy, _call, _strategist, _label, _active);
     }
