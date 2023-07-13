@@ -2,15 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin-4/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin-4/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../../interfaces/common/IStableRouter.sol";
 import "../../interfaces/common/IRewardPool.sol";
-import "../Common/StratFeeManager.sol";
-import "../../utils/GasFeeThrottler.sol";
+import "../Common/StratFeeManagerInitializable.sol";
 
-contract StrategyHop is StratFeeManager, GasFeeThrottler {
+contract StrategyHop is StratFeeManagerInitializable {
     using SafeERC20 for IERC20;
 
     // Tokens used
@@ -32,12 +30,13 @@ contract StrategyHop is StratFeeManager, GasFeeThrottler {
     event Withdraw(uint256 tvl);
     event ChargedFees(uint256 callFees, uint256 beefyFees, uint256 strategistFees);
 
-    constructor(
+    function __StrategyHop_init(
         address _want,
         address _rewardPool,
         address _stableRouter,
-        CommonAddresses memory _commonAddresses
-    ) StratFeeManager(_commonAddresses) {
+        CommonAddresses calldata _commonAddresses
+    ) internal onlyInitializing {
+        __StratFeeManager_init(_commonAddresses);
         want = _want;
         rewardPool = _rewardPool;
         stableRouter = _stableRouter;
@@ -208,13 +207,13 @@ contract StrategyHop is StratFeeManager, GasFeeThrottler {
         deposit();
     }
 
-    function _giveAllowances() internal virtual {
+    function _giveAllowances() internal {
         IERC20(want).safeApprove(rewardPool, type(uint).max);
         IERC20(output).safeApprove(unirouter, type(uint).max);
         IERC20(depositToken).safeApprove(stableRouter, type(uint).max);
     }
 
-    function _removeAllowances() internal virtual {
+    function _removeAllowances() internal {
         IERC20(want).safeApprove(rewardPool, 0);
         IERC20(output).safeApprove(unirouter, 0);
         IERC20(depositToken).safeApprove(stableRouter, 0);

@@ -4,6 +4,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
 import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 // import "@typechain/hardhat";
 import "./tasks";
 
@@ -139,32 +140,48 @@ const config: DeploymentConfig = {
       chainId: 2222,
       accounts,
     },
+    canto: {
+      url: process.env.CANTO_RPC || "https://canto.slingshot.finance",
+      chainId: 7700,
+      accounts,
+    },
   },
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: process.env.API_KEY,
+    apiKey: {
+      polygon: process.env.POLYGON_API_KEY!,
+    },
     customChains: [
       {
         network: "metis",
         chainId: 1088,
         urls: {
           apiURL: "https://andromeda-explorer.metis.io/api",
-          browserURL: "https://andromeda-explorer.metis.io/"
-        }
+          browserURL: "https://andromeda-explorer.metis.io/",
+        },
       },
       {
         network: "celo",
         chainId: 42220,
         urls: {
           apiURL: "https://api.celoscan.io/api/",
-          browserURL: "https://celoscan.io/"
-        }
-      }
-    ]
+          browserURL: "https://celoscan.io/",
+        },
+      },
+    ],
   },
   solidity: {
     compilers: [
+      {
+        version: "0.8.19",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
       {
         version: "0.8.15",
         settings: {

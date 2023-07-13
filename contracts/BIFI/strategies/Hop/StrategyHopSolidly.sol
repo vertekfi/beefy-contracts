@@ -10,14 +10,15 @@ contract StrategyHopSolidly is StrategyHop {
     ISolidlyRouter.Routes[] public outputToNativeRoute;
     ISolidlyRouter.Routes[] public outputToDepositRoute;
 
-    constructor(
+    function initialize(
         address _want,
         address _rewardPool,
         address _stableRouter,
-        ISolidlyRouter.Routes[] memory _outputToNativeRoute,
-        ISolidlyRouter.Routes[] memory _outputToDepositRoute,
-        CommonAddresses memory _commonAddresses
-    ) StrategyHop(_want, _rewardPool, _stableRouter, _commonAddresses) {
+        ISolidlyRouter.Routes[] calldata _outputToNativeRoute,
+        ISolidlyRouter.Routes[] calldata _outputToDepositRoute,
+        CommonAddresses calldata _commonAddresses
+    ) public initializer {
+        __StrategyHop_init(_want, _rewardPool, _stableRouter, _commonAddresses);
         for (uint i; i < _outputToNativeRoute.length; ++i) {
             outputToNativeRoute.push(_outputToNativeRoute[i]);
         }
@@ -28,7 +29,7 @@ contract StrategyHopSolidly is StrategyHop {
 
         output = outputToNativeRoute[0].from;
         native = outputToNativeRoute[outputToNativeRoute.length - 1].to;
-        depositToken = outputToDepositRoute[outputToDepositRoute.length - 1].to;
+        depositToken = _outputToDepositRoute[_outputToDepositRoute.length - 1].to;
         depositIndex = IStableRouter(stableRouter).getTokenIndex(depositToken);
 
         _giveAllowances();
